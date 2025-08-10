@@ -1,0 +1,20 @@
+.login-page{
+    min-height: 100%;  /* Fallback for browsers do NOT support vh unit */
+    min-height: 100vh; /* These two lines are counted as one :-)       */
+  /* 
+    display: flex;
+    align-items: center; */
+  }
+  
+  .a{
+    /* margin-top: auto;
+    margin-bottom: auto; */
+    position: absolute;
+    right: 25%;
+    width: 50%;
+    height: 50%;
+    top: 25%;
+  }  
+  .cl-red{
+    color: red;
+  }
