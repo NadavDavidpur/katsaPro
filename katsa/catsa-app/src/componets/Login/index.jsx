@@ -29,6 +29,7 @@ function Login() {
                     id: fields.id,
                     isManager: res.data.isManager,
                     avatar: res.data.avatar,
+                    isActive: res.data.isActive,
                 },
                 res.data.access_token
             );

@@ -4,7 +4,7 @@ load_dotenv()
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
 import create_db
 
 app = Flask(__name__)
@@ -29,12 +29,14 @@ def login():
     if not user['isActive']:
         return jsonify({"userIn": False, "reason": "inactive"}), 401
 
-    token = create_access_token(identity={
-        "id": user['id'],
-        "name": user['name'],
-        "isManager": bool(user['isManager']),
-        "avatar": user['avatar']
-    })
+    token = create_access_token(
+        identity=str(user['id']),
+        additional_claims={
+            "name": user['name'],
+            "isManager": bool(user['isManager']),
+            "avatar": user['avatar']
+        }
+    )
 
     return jsonify({
         "userIn": True,
