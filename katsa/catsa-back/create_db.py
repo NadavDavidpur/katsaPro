@@ -1,376 +1,219 @@
-
-
+import os
 import mysql.connector
+
+
+def get_db():
+    return mysql.connector.connect(
+        host=os.environ.get("DB_HOST", "127.0.0.1"),
+        user=os.environ.get("DB_USER", "root"),
+        password=os.environ.get("DB_PASSWORD", ""),
+        database=os.environ.get("DB_NAME", "Katsa"),
+        auth_plugin='mysql_native_password'
+    )
 
 
 def query_to_js(columns_names, queries):
     query_json = []
-    for j in range(len(queries)):
-        query_json.append({})
-        for i in range(len(columns_names)):
-            # if query_json[j]=={}:
-            query_json[-1][columns_names[i]] = queries[j][i]
-
-        # query_json.append()
+    for row in queries:
+        obj = {}
+        for i, col in enumerate(columns_names):
+            obj[col] = row[i]
+        query_json.append(obj)
     return query_json
 
 
-# print(query_to_js(["id", "name", "phone", "roll", "isManager"], workers_query()))
-
-
 def projects_query():
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-
-    # sql = """select * from project inner """
-    sql = """select project.*, Status.color, Status.status from project inner join Status on Status.id=Project.StatusId
-    """
+    sql = """SELECT project.*, Status.color, Status.status
+             FROM project
+             INNER JOIN Status ON Status.id = Project.StatusId"""
     mycursor.execute(sql)
     myresult = mycursor.fetchall()
-    # print(query_to_js(["id", "name", "contractorName", "supervisorName", "location"], myresult))
+    mydb.close()
     return query_to_js(
-        ["id", "name", "contractorName", "supervisorName", "location", "description", "Tool", "StatusId", "inactive",
-         'StatusColor', 'StatusName'], myresult)
+        ["id", "name", "contractorName", "supervisorName", "location",
+         "description", "Tool", "StatusId", "inactive", "StatusColor", "StatusName"],
+        myresult
+    )
 
 
 def UpdateProjectStatus(Id, StatusId):
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-    sql = f"""
-    UPDATE project
-            SET StatusId={StatusId}
-            WHERE id={Id};"""
-
-    mycursor.execute(sql)
+    sql = "UPDATE project SET StatusId=%s WHERE id=%s"
+    mycursor.execute(sql, (StatusId, Id))
     mydb.commit()
+    mydb.close()
 
 
 def insert_newProject(name, contractorName, supervisorName, location, description, Tool):
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-    # sql = f"""INSERT INTO Project (name, contractorId, supervisorId, location, inactive) VALUES
-    # ('{str(name)}',(select id from Contractor where name='{str(constractorName)}'),
-    # (select id from Supervisor where name='{str(supervisorName)}'),'{str(location)}',1)"""
-    sql = f"""INSERT INTO Project (name, contractorName, supervisorName, location,description,Tool, inactive, StatusId) 
-    VALUES
-     ('{str(name)}','{str(contractorName)}','{str(supervisorName)}','{str(location)}','{str(description)}','{str(Tool)}'
-     ,1, 1) """
-    # print(sql)
-    # mycursor.execute(f)
-    # print(sql)
-    # print(sql)
-    mycursor.execute(sql)
+    sql = """INSERT INTO Project (name, contractorName, supervisorName, location, description, Tool, inactive, StatusId)
+             VALUES (%s, %s, %s, %s, %s, %s, 1, 1)"""
+    mycursor.execute(sql, (name, contractorName, supervisorName, location, description, Tool))
     mydb.commit()
-    # mycursor.close()
-    # mydb.close()
+    mydb.close()
 
 
 def workers_query():
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-    mycursor.execute("""SELECT * from Worker""")
+    mycursor.execute("SELECT * FROM Worker")
     myresult = mycursor.fetchall()
+    mydb.close()
     return query_to_js(["id", "name", "phone", "class", "isManager", "avatar", "isActive"], myresult)
 
 
 def Status_query():
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-    mycursor.execute("""SELECT * from Status""")
+    mycursor.execute("SELECT * FROM Status")
     myresult = mycursor.fetchall()
+    mydb.close()
     return query_to_js(["id", "name", "color"], myresult)
 
 
 def users_login(name, id):
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-    sql = f"""select id,name,avatar,isManager,isActive from Worker where id={id} and name='{name}'"""
-    mycursor.execute(sql)
+    sql = "SELECT id, name, avatar, isManager, isActive FROM Worker WHERE id=%s AND name=%s"
+    mycursor.execute(sql, (id, name))
     myresult = mycursor.fetchall()
-
+    mydb.close()
     return query_to_js(['id', 'name', 'avatar', 'isManager', 'isActive'], myresult)
-    # myresult = mycursor.fetchall()
 
 
-# where inactive=1
 def risks_query():
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-    mycursor.execute("""SELECT * from risk """)
+    mycursor.execute("SELECT * FROM risk")
     myresult = mycursor.fetchall()
-    # print(myresult)
+    mydb.close()
     return query_to_js(["id", "name", "inactive"], myresult)
 
 
-# print(workers_query(mydb))
-
-
 def project_risk_query():
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-    sql = """
-            SELECT ProjectRisk.id,Project.id,Risk.name as riskname,Status.status,status.id, ProjectRisk.inactive FROM ProjectRisk 
-                inner join Project on Project.id=ProjectRisk.ProjectId 
-                inner join Risk on Risk.id=ProjectRisk.RiskId
-                inner join Status on Status.id=ProjectRisk.status
-    """
-    # """SELECT ProjectRisk.id,Project.id,Risk.name as riskname, ProjectRisk.inactive FROM ProjectRisk
-    #     inner join Project on Project.id=ProjectRisk.ProjectId inner join Risk on Risk.id=ProjectRisk.RiskId"""
+    sql = """SELECT ProjectRisk.id, Project.id, Risk.name AS riskname,
+                    Status.status, Status.id, ProjectRisk.inactive
+             FROM ProjectRisk
+             INNER JOIN Project ON Project.id = ProjectRisk.ProjectId
+             INNER JOIN Risk ON Risk.id = ProjectRisk.RiskId
+             INNER JOIN Status ON Status.id = ProjectRisk.status"""
     mycursor.execute(sql)
-
     myresult = mycursor.fetchall()
-
-    return query_to_js(["id", "projectId", "RiskName", "status","StatusId", "inactive"], myresult)
+    mydb.close()
+    return query_to_js(["id", "projectId", "RiskName", "status", "StatusId", "inactive"], myresult)
 
 
 def UpdateRiskStatus(id):
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-    sql = f"""UPDATE ProjectRisk
-        SET Status=2
-        WHERE id={id} and status != 4;"""
-    mycursor.execute(sql)
+    sql = "UPDATE ProjectRisk SET Status=2 WHERE id=%s AND status != 4"
+    mycursor.execute(sql, (id,))
     mydb.commit()
+    mydb.close()
 
 
 def changeRiskStatus(id):
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-    sql = f"""UPDATE ProjectRisk
-        SET Status=4
-        WHERE id={id};"""
-    mycursor.execute(sql)
+    sql = "UPDATE ProjectRisk SET Status=4 WHERE id=%s"
+    mycursor.execute(sql, (id,))
     mydb.commit()
+    mydb.close()
 
 
 def delete_project_risk(id):
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-    sql = f"""UPDATE ProjectRisk
-        SET inactive=0
-        WHERE id={id};"""
-    mycursor.execute(sql)
+    mycursor.execute("UPDATE ProjectRisk SET inactive=0 WHERE id=%s", (id,))
     mydb.commit()
-
-    sql = f"""Update Comment 
-            SET inactive=0
-               WHERE ProjectRiskId={id} """
-    mycursor.execute(sql)
+    mycursor.execute("UPDATE Comment SET inactive=0 WHERE ProjectRiskId=%s", (id,))
     mydb.commit()
-    # print(myresult)
+    mydb.close()
 
-
-# mydb,
 
 def insert_riskProject(projectid, riskname):
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-    sql = f"""INSERT INTO ProjectRisk (projectId, RiskId,inactive,status) VALUES
-        ({projectid},(select id from Risk where name='{str(riskname)}' and inactive=1),1,1)"""
-    # print(sql)
-    mycursor.execute(sql)
+    sql = """INSERT INTO ProjectRisk (projectId, RiskId, inactive, status)
+             VALUES (%s, (SELECT id FROM Risk WHERE name=%s AND inactive=1), 1, 1)"""
+    mycursor.execute(sql, (projectid, riskname))
     mydb.commit()
+    mydb.close()
 
 
-# DELETE FROM table_name WHERE condition mydb,
 def newRisk(riskname):
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
-    # print(riskname)
+    mydb = get_db()
     mycursor = mydb.cursor()
-    sql = f"""INSERT INTO Risk (name, inactive) VALUES
-        ('{str(riskname)}', 1)"""
-    # print(sql)
-    mycursor.execute(sql)
+    sql = "INSERT INTO Risk (name, inactive) VALUES (%s, 1)"
+    mycursor.execute(sql, (riskname,))
     mydb.commit()
+    mydb.close()
 
 
-# SELECT Comment.id,Comment.description,worker.name as workername, Project.name as projectname, Risk.name as riskname
-# FROM Comment inner join Worker on Worker.id=Comment.workerId inner join ProjectRisk
-# on ProjectRisk.id=Comment.ProjectRiskId inner join Project on Project.id=ProjectRisk.ProjectId
-# inner join risk on Risk.id=ProjectRisk.RiskId
 def comment():
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-
-    sql = f"""SELECT Comment.id,Comment.description,worker.name as workerName, Comment.date, comment.ProjectRiskId,
-                worker.avatar,comment.inactive
-                FROM Comment inner join Worker on Worker.id=Comment.workerId inner join ProjectRisk
-                on ProjectRisk.id=Comment.ProjectRiskId  ORDER BY date ASC"""
-
+    sql = """SELECT Comment.id, Comment.description, Worker.name AS workerName,
+                    Comment.date, Comment.ProjectRiskId, Worker.avatar, Comment.inactive
+             FROM Comment
+             INNER JOIN Worker ON Worker.id = Comment.workerId
+             INNER JOIN ProjectRisk ON ProjectRisk.id = Comment.ProjectRiskId
+             ORDER BY date ASC"""
     mycursor.execute(sql)
     myresult = mycursor.fetchall()
+    mydb.close()
     return query_to_js(['id', 'description', 'workerName', 'date', 'ProjectRiskId', 'avatar', 'inactive'], myresult)
 
 
 def insert_comment(projectRiskId, description, workerName):
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-    sql = f"""INSERT INTO comment (projectRiskId, description,workerId, inactive) VALUES
-        ({projectRiskId},'{description}',(select id from Worker where name='{str(workerName)}'),1)"""
-
-    mycursor.execute(sql)
+    sql = """INSERT INTO comment (projectRiskId, description, workerId, inactive)
+             VALUES (%s, %s, (SELECT id FROM Worker WHERE name=%s), 1)"""
+    mycursor.execute(sql, (projectRiskId, description, workerName))
     mydb.commit()
+    mydb.close()
 
 
 def update_comment(body, id):
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
+    mydb = get_db()
     mycursor = mydb.cursor()
-    sql = f"""UPDATE comment
-        SET description='{body}'
-        WHERE id={id};"""
-
-    mycursor.execute(sql)
+    sql = "UPDATE comment SET description=%s WHERE id=%s"
+    mycursor.execute(sql, (body, id))
     mydb.commit()
+    mydb.close()
 
 
 def Delete_comment(id):
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
-
+    mydb = get_db()
     mycursor = mydb.cursor()
-    sql = f"""UPDATE comment
-        SET inactive=0
-        WHERE id={id};"""
-
-    mycursor.execute(sql)
+    sql = "UPDATE comment SET inactive=0 WHERE id=%s"
+    mycursor.execute(sql, (id,))
     mydb.commit()
+    mydb.close()
 
 
 def Delete_worker(id):
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
-
+    mydb = get_db()
     mycursor = mydb.cursor()
-    sql = f"""UPDATE worker
-            SET isActive=0
-            WHERE id={id};"""
-
-    mycursor.execute(sql)
+    sql = "UPDATE worker SET isActive=0 WHERE id=%s"
+    mycursor.execute(sql, (id,))
     mydb.commit()
+    mydb.close()
 
 
 def insert_worker(name, id, phoneNumber, Class, profile, manager):
-    mydb = mysql.connector.connect(
-        host='127.0.0.1',
-        user="root",
-        password="NadavD3203",
-        database="Katsa",
-        auth_plugin='mysql_native_password'
-    )
-
-    if manager == True:
-        isManager = 1
-    else:
-        isManager = 0
+    mydb = get_db()
+    isManager = 1 if manager else 0
     mycursor = mydb.cursor()
-    sql = f"""INSERT INTO worker (id,name,phone,Class,avatar,isManager, isActive) VALUES ({id},'{name}', '{phoneNumber}', '{Class}','{profile}',{isManager},1) """
-
-    mycursor.execute(sql)
+    sql = """INSERT INTO worker (id, name, phone, Class, avatar, isManager, isActive)
+             VALUES (%s, %s, %s, %s, %s, %s, 1)"""
+    mycursor.execute(sql, (id, name, phoneNumber, Class, profile, isManager))
     mydb.commit()
-    # StatusId
+    mydb.close()

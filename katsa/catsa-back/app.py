@@ -1,274 +1,187 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, after_this_request
-from flask_cors import CORS, cross_origin
-from flask_session import Session
-from flask_sqlalchemy import SQLAlchemy
-import json
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
-from flask_restful import Api
-# from mobile_resources.events import UserMobile
-import sqlite3,flask_sqlalchemy
-import json
-import mysql.connector
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import create_db
 
-# from create_db import *
-
-mydb = mysql.connector.connect(
-    host='127.0.0.1',
-    user="root",
-    password="NadavD3203",
-    database="Katsa",
-    auth_plugin='mysql_native_password'
-)
-
 app = Flask(__name__)
-CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": "*"}})
-app.config['CORS_HEADERS'] = 'Content-Type'
-# app.config["SESSION_PERMANENT"] = False
-# app.config["SESSION_TYPE"] = "filesystem"
 
-app.config['SESSION_PERMANENT'] = False
-app.config['SESSION_TYPE'] = 'filesystem'
-# app.secret_key = 'secret key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:NadavD3203@127.0.0.1/Katsa'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # השבתת התראות לא נחוצות
+CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"], supports_credentials=True)
 
-db = SQLAlchemy(app)
-Session(app)
+app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "dev-jwt-secret-change-in-prod")
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = False  # token לא פג תוקף (אפשר לשנות ל-timedelta)
+
+jwt = JWTManager(app)
 
 
-# jsonify(create_db.projects_query(mydb))
 @app.route('/login', methods=['POST'])
-@cross_origin()
 def login():
-    response = request.json
+    body = request.json
+    users = create_db.users_login(body.get('username', ''), body.get('id', ''))
 
-    # response.headers.add('Access-Control-Allow-Origin', '*')mydb,
+    if len(users) != 1:
+        return jsonify({"userIn": False}), 401
 
-    users_login = create_db.users_login(response['username'], response['id'])
+    user = users[0]
+    if not user['isActive']:
+        return jsonify({"userIn": False, "reason": "inactive"}), 401
 
-    if len(users_login) == 1:
+    token = create_access_token(identity={
+        "id": user['id'],
+        "name": user['name'],
+        "isManager": bool(user['isManager']),
+        "avatar": user['avatar']
+    })
 
-        user_in = 'True'
-
-        return {'userIn': user_in, 'avatar': users_login[0]['avatar'], "isManager": users_login[0]['isManager'],
-                "isActive": users_login[0]['isActive']}
-    else:
-        user_in = 'False'
-        return {'userIn': user_in}
-
-
-@app.route('/deleteRisk', methods=['POST'])
-@cross_origin()
-def deleteRisk():
-    response = request.json
-    create_db.delete_project_risk(response['id'])
-
-    response1 = (create_db.project_risk_query())
-    # response.headdeleteRiskers.add('Access-Control-Allow-Origin', '*')
-    # response1.headers.add('Access-Control-Allow-Origin', '*')
-    # print(json.dumps(response1))
-    return json.dumps(response1)
-
-    # response.headers.add('Access-Control-Allow-Origin', '*')mydb,
-
-
-@app.route('/newRiskProject', methods=['POST'])
-@cross_origin()
-def newRiskProject():
-    response = request.json
-    create_db.insert_riskProject(response['projectId'], response['RiskName'])
-    response1 = (create_db.project_risk_query())
-    # response.headdeleteRiskers.add('Access-Control-Allow-Origin', '*')
-    # response1.headers.add('Access-Control-Allow-Origin', '*')
-    # print(json.dumps(response1))
-    return json.dumps(response1)
-
-
-@app.route('/UpdateRiskStatus', methods=['POST'])
-@cross_origin()
-def UpdateRiskStatus():
-    response = request.json
-    print(33)
-    create_db.UpdateRiskStatus(response['riskid'])
-    response1 = (create_db.project_risk_query())
-    # response.headdeleteRiskers.add('Access-Control-Allow-Origin', '*')
-    # response1.headers.add('Access-Control-Allow-Origin', '*')
-    # print(json.dumps(response1))
-    return json.dumps(response1)
-
-
-@app.route('/changeRiskStatus', methods=['POST'])
-@cross_origin()
-def changeRiskStatus():
-    response = request.json
-
-    create_db.changeRiskStatus(response['riskid'])
-    response1 = (create_db.project_risk_query())
-    # response.headdeleteRiskers.add('Access-Control-Allow-Origin', '*')
-    # response1.headers.add('Access-Control-Allow-Origin', '*')
-    # print(json.dumps(response1))
-    return json.dumps(response1)
-
-
-# mydb,
-@app.route('/newRisk', methods=['POST'])
-@cross_origin()
-def newRisk():
-    response = request.json
-    create_db.newRisk(response['RiskName'])
-    return '1'
-
-
-# @app.route('/delete', methods=['GET'])
-# def delete():
-#     @after_this_request
-#     def add_header(response):
-#         response.headers['Access-Control-Allow-Origin'] = '*'
-#         return response
-#
-#     if request.method == 'GET':
-#
-#         return jsonify(name="nas")
-
-
-@app.route('/workers', methods=['GET'])
-# @cross_origin()mydb
-def workers():
-    response = jsonify(create_db.workers_query())
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
+    return jsonify({
+        "userIn": True,
+        "access_token": token,
+        "avatar": user['avatar'],
+        "isManager": bool(user['isManager']),
+        "isActive": bool(user['isActive'])
+    })
 
 
 @app.route('/projects', methods=['GET'])
-# @cross_origin()mydb
+@jwt_required()
 def projects():
-    response = jsonify(create_db.projects_query())
-    # print(response)
-    response.headers.add('Access-Control-Allow-Origin', '*')
-
-    return response
+    return jsonify(create_db.projects_query())
 
 
 @app.route('/newProject', methods=['POST'])
-@cross_origin()
+@jwt_required()
 def NewProject():
     req = request.json
-    print(req)
-    create_db.insert_newProject(req['projectname'], req['contractorname'], req['supervisorName'], req['location_project'],
-                                req['description'], req['Tool'])
-    response = jsonify(create_db.projects_query())
-    return response
-
-
-@app.route('/risks', methods=['GET'])
-# @cross_origin()mydb
-def risks():
-    response = jsonify(create_db.risks_query())
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
-
-@app.route('/ProjectRisk', methods=['GET'])
-# @cross_origin()mydb
-def project_risk():
-    response = jsonify(create_db.project_risk_query())
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
-
-@app.route('/Status', methods=['GET'])
-# @cross_origin()mydb
-def Status():
-    response = jsonify(create_db.Status_query())
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
-
-@app.route('/comments', methods=['GET'])
-# @cross_origin()mydb
-def comment():
-    response = jsonify(create_db.comment())
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
-
-@app.route('/newComment', methods=['POST'])
-@cross_origin()
-def newComment():
-    response = request.json
-    # projectRiskId, description, workerName
-    # print(response['workerName'])
-    create_db.insert_comment(response['ProjectRiskId'], response['description'], response['workerName'])
-
-    response = jsonify(create_db.comment())
-    # response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
-
-@app.route('/updateCommon', methods=['POST'])
-@cross_origin()
-def updateCommon():
-    response = request.json
-    print(response)
-    # projectRiskId, description, workerName
-    # print(response['workerName'])
-    create_db.update_comment(response['body'], response['id'])
-
-    return "update"
-
-
-@app.route('/DeleteCommon', methods=['POST'])
-@cross_origin()
-def DeleteCommon():
-    response = request.json
-    print(response)
-    # projectRiskId, description, workerName
-    # print(response['workerName'])
-    create_db.Delete_comment(response['id'])
-
-    # print(1)
-
-    return "delete"
-
-
-@app.route('/DeleteWorker', methods=['POST'])
-@cross_origin()
-def DeleteWorker():
-    response = request.json
-
-    create_db.Delete_worker(response['id'])
-    response = create_db.workers_query()
-    # print(1)
-    # print(response)
-    return jsonify(response)
-
-
-@app.route('/newWorker', methods=['POST'])
-@cross_origin()
-def new_worker():
-    response = request.json
-    # print(response)
-    create_db.insert_worker(response['Name'], response['Id'], response['PhoneNumber'], response['Class'],
-                            response['img'], response['manager'])
-    return "successes"
+    create_db.insert_newProject(
+        req['projectname'], req['contractorname'], req['supervisorName'],
+        req['location_project'], req['description'], req['Tool']
+    )
+    return jsonify(create_db.projects_query())
 
 
 @app.route('/changeProjectStatus', methods=['POST'])
-@cross_origin()
+@jwt_required()
 def changeProjectStatus():
-    response = request.json
-    create_db.UpdateProjectStatus(response['Id'], response['StatusId'])
-    response = jsonify(create_db.projects_query())
-    # print(response)
-    response.headers.add('Access-Control-Allow-Origin', '*')
+    body = request.json
+    create_db.UpdateProjectStatus(body['Id'], body['StatusId'])
+    return jsonify(create_db.projects_query())
 
-    return response
+
+@app.route('/workers', methods=['GET'])
+@jwt_required()
+def workers():
+    return jsonify(create_db.workers_query())
+
+
+@app.route('/newWorker', methods=['POST'])
+@jwt_required()
+def new_worker():
+    body = request.json
+    create_db.insert_worker(
+        body['Name'], body['Id'], body['PhoneNumber'],
+        body['Class'], body['img'], body['manager']
+    )
+    return jsonify({"success": True})
+
+
+@app.route('/DeleteWorker', methods=['POST'])
+@jwt_required()
+def DeleteWorker():
+    body = request.json
+    create_db.Delete_worker(body['id'])
+    return jsonify(create_db.workers_query())
+
+
+@app.route('/risks', methods=['GET'])
+@jwt_required()
+def risks():
+    return jsonify(create_db.risks_query())
+
+
+@app.route('/newRisk', methods=['POST'])
+@jwt_required()
+def newRisk():
+    body = request.json
+    create_db.newRisk(body['RiskName'])
+    return jsonify({"success": True})
+
+
+@app.route('/deleteRisk', methods=['POST'])
+@jwt_required()
+def deleteRisk():
+    body = request.json
+    create_db.delete_project_risk(body['id'])
+    return jsonify(create_db.project_risk_query())
+
+
+@app.route('/ProjectRisk', methods=['GET'])
+@jwt_required()
+def project_risk():
+    return jsonify(create_db.project_risk_query())
+
+
+@app.route('/newRiskProject', methods=['POST'])
+@jwt_required()
+def newRiskProject():
+    body = request.json
+    create_db.insert_riskProject(body['projectId'], body['RiskName'])
+    return jsonify(create_db.project_risk_query())
+
+
+@app.route('/UpdateRiskStatus', methods=['POST'])
+@jwt_required()
+def UpdateRiskStatus():
+    body = request.json
+    create_db.UpdateRiskStatus(body['riskid'])
+    return jsonify(create_db.project_risk_query())
+
+
+@app.route('/changeRiskStatus', methods=['POST'])
+@jwt_required()
+def changeRiskStatus():
+    body = request.json
+    create_db.changeRiskStatus(body['riskid'])
+    return jsonify(create_db.project_risk_query())
+
+
+@app.route('/comments', methods=['GET'])
+@jwt_required()
+def comment():
+    return jsonify(create_db.comment())
+
+
+@app.route('/newComment', methods=['POST'])
+@jwt_required()
+def newComment():
+    body = request.json
+    create_db.insert_comment(body['ProjectRiskId'], body['description'], body['workerName'])
+    return jsonify(create_db.comment())
+
+
+@app.route('/updateCommon', methods=['POST'])
+@jwt_required()
+def updateCommon():
+    body = request.json
+    create_db.update_comment(body['body'], body['id'])
+    return jsonify({"success": True})
+
+
+@app.route('/DeleteCommon', methods=['POST'])
+@jwt_required()
+def DeleteCommon():
+    body = request.json
+    create_db.Delete_comment(body['id'])
+    return jsonify({"success": True})
+
+
+@app.route('/Status', methods=['GET'])
+@jwt_required()
+def Status():
+    return jsonify(create_db.Status_query())
 
 
 if __name__ == "__main__":
-    # db.create_all()
-    # app.run(host='10.100.102.17', debug=True)
-    # app.run(host='172.20.10.2', debug=True)
-
-     app.run(host='172.19.34.128', debug=True)
+    app.run(host='0.0.0.0', debug=True)

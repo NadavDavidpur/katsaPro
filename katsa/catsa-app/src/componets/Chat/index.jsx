@@ -5,45 +5,27 @@ import Loading from "../Loading";
 import MessageMe from "./message/meesage-me";
 import MessageAnouther from "./message/message-anouther";
 import Navbar from "../Navbar";
-import { format } from 'date-fns-tz';
-
-// import {FaBeer} from 'react-icons/fa';
-import {FaEllipsisV, FaRocketchat } from "react-icons/fa"
-// import DeleteIcon from '@mui/icons-material/Delete';
-// import DeleteIcon from '@mui/icons-material/Delete';
-// import IconButton from '@mui/material/IconButton';
-// import Tooltip from '@mui/material/Tooltip';
+import { useAuth } from "../../context/AuthContext";
+import {FaEllipsisV } from "react-icons/fa"
 import Edit from "./Edit";
 import ScrollableFeed from 'react-scrollable-feed'
-import { CompressOutlined } from "@mui/icons-material";
 
 
-function Chat({  user,setUser, project, setProject, risksList, setRisksList, risk, setrisk})
+function Chat({ project, setProject, risksList, setRisksList, risk, setrisk})
 {
+    const { user } = useAuth();
     const divRef = useRef(null);
-    //const [messageBody, setMessageBody] = useState('')
-    const [chatInput,setChatInput] =useState()
-    const [show, setshow] = useState(false)
-    const [avatar, setAvatar] = useState('')
-    const [commentsProjectRisk, setcommentsProjectRisk] = useState(null)
-    // const [risk, setrisk] = useState(null)
-    
-    useEffect(()=>{
-        APIService.comments().then(res=>{
-            setcommentsProjectRisk((res.data.filter(comment=>comment.ProjectRiskId==window.location.pathname.split('/')[4] && comment.inactive===1)))
-            
+    const [chatInput, setChatInput] = useState('');
+    const [show, setshow] = useState(false);
+    const [commentsProjectRisk, setcommentsProjectRisk] = useState(null);
 
-
-        })
-
-
-        setUser(JSON.parse(window.localStorage.getItem('user')))
-
-        setAvatar(window.localStorage.getItem('avatar'))
-
-        // setrisk(JSON.parse(window.localStorage.getItem('risk')))
-        // console.log(risk)
-    },[])
+    useEffect(() => {
+        APIService.comments().then(res => {
+            setcommentsProjectRisk(res.data.filter(
+                comment => comment.ProjectRiskId == window.location.pathname.split('/')[4] && comment.inactive === 1
+            ));
+        });
+    }, []);
 
 
     useEffect(()=>{
@@ -130,7 +112,7 @@ function Chat({  user,setUser, project, setProject, risksList, setRisksList, ris
         {
         user.isActive==1 ?
             <div>
-                <Navbar user={user} />
+                <Navbar />
                 {/* <ScrollableFeed> */}
                     <div>
                     {/* {each.StatusId != 4 ? 

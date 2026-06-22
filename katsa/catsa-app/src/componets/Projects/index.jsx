@@ -1,12 +1,13 @@
 
 import {useEffect, useState} from 'react'
-import { Link,Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import APIService from '../help/APIService';
 import Navbar from '../Navbar';
+import { useAuth } from '../../context/AuthContext';
  import { FaAngleDown, FaAngleUp, FaInfo, FaPlus } from "react-icons/fa";
  import './style.css';
- //import {Rectangle} from 'react-shape'
-function Projects({projects, setProjects, setProject, project,user,setUser}){
+function Projects({projects, setProjects, setProject, project}){
+    const { user } = useAuth();
     // const [projects, setProject] = ([{"name":1},{"name":2}])
    // const projects = [{"name":1},{"name":2}]
     // useEffect(()=>{
@@ -53,16 +54,7 @@ function Projects({projects, setProjects, setProject, project,user,setUser}){
       };
       
     useEffect(()=>{
-        // console.log(1)
-        APIService.projects().then(res=>
-        
-            setProjects(res.data)
-            
-          )
-       // console.log(JSON.parse(window.localStorage.getItem('workers')))
-        setUser(JSON.parse(window.localStorage.getItem('user')))
-        
-
+        APIService.projects().then(res=> setProjects(res.data))
       },[])
 
       const hundleCloseInfo = () =>{
@@ -93,7 +85,7 @@ function Projects({projects, setProjects, setProject, project,user,setUser}){
         <div dir='rtl'>
             {user.isActive==1 ? 
                 <div>
-                    <Navbar user={user}/>
+                    <Navbar />
 
                     <div className="workers-title">
                         <h1>פרוייקטים</h1>

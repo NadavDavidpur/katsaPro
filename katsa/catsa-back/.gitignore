@@ -1,0 +1,14 @@
+# סביבה
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Flask sessions
+flask_session/
+
+# IDE
+.idea/
+.vscode/

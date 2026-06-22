@@ -2,27 +2,21 @@ import { useEffect,useState } from "react";
 import APIService from '../../help/APIService';
 import Risk from "../../Risks/ChosseRisk";
 import { useNavigate } from "react-router";
-//import Loading from "./Loading";
 import Navbar from "../../Navbar/index";
 import worker_icon from '../../pictures/worker-icon.jpg'
 import description from '../../pictures/description.jpg'
 import OptionsList from "../../help/option";
-//import {FcHeadset} from "react-icons/fc" 
-import { FaRocketchat, FaExclamationTriangle, FaPlus, FaComment, FaRegTrashAlt, FaMapMarkerAlt, FaTools } from "react-icons/fa"
-function Project({project, setProject, risks, setRisks, setProjects, user, setUser, risksList, setRisksList, risk, setrisk})
+import { useAuth } from "../../../context/AuthContext";
+import { FaRocketchat, FaExclamationTriangle, FaPlus, FaRegTrashAlt, FaMapMarkerAlt, FaTools } from "react-icons/fa"
+function Project({project, setProject, risks, setRisks, setProjects, risksList, setRisksList, risk, setrisk})
 {
+    const { user } = useAuth();
     const [showpopup, setshowpopup] = useState(false)
-    // const [risksList, setRisksList] = useState([])
- //   const [RisksProjects, setRisksProjects] =useState([])
     const [Statuses, setStatuses] = useState([])
     const [status,setStatus] =useState(project.StatusName)
-    
+
 
     useEffect(()=>{
-        console.log(project.StatusName)
-        //console.log(JSON.parse(window.localStorage.getItem('project')),status)
-        setUser(JSON.parse(window.localStorage.getItem('user')))
-       // setProject(JSON.parse(window.localStorage.getItem('project')))
        setRisks(JSON.parse(window.localStorage.getItem('risks')))
         APIService.projects().then(res=>{
            setProject((res.data).filter(project=>project.id==window.location.pathname.split('/')[2])[0])
@@ -100,7 +94,7 @@ function Project({project, setProject, risks, setRisks, setProjects, user, setUs
         <div>
             {user.isActive===1 ? 
             <div>
-                <Navbar user={user} />
+                <Navbar />
                 {project ?
                     <div className="container" dir="rtl">
                        
