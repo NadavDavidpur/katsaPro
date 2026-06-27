@@ -36,19 +36,29 @@ function Chat({ project, setProject, risksList, setRisksList, risk, setrisk})
 
 
     },[commentsProjectRisk])
-    const hundlesubmit = async ()=>{
-        setChatInput('')
-        // const currentTime = new Date();
+    const hundlesubmit = async () => {
+        if (!chatInput.trim()) return;
+        const text = chatInput;
+        setChatInput('');
+        APIService.newComment({
+            'workerName': user.username,
+            'description': text,
+            'ProjectRiskId': window.location.pathname.split('/')[4]
+        }).then(res => {
+            setcommentsProjectRisk(res.data.filter(
+                comment => comment.ProjectRiskId == window.location.pathname.split('/')[4] && comment.inactive === 1
+            ));
+        }).catch(() => {
+            setChatInput(text);
+        });
+    };
 
-        //console.log(33)
-         APIService.newComment({'workerName':user.username, 'description':chatInput, 'ProjectRiskId':window.location.pathname.split('/')[4]}).then(res=>{
-            // console.log(34)
-            // console.log(res.data)
-            setcommentsProjectRisk((res.data.filter(comment=>comment.ProjectRiskId==window.location.pathname.split('/')[4] && comment.inactive===1)))
-         })
-    
-        
-    }
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            hundlesubmit();
+        }
+    };
 
     const changeStatus= () =>{
         APIService.changeRiskStatus(window.location.pathname.split('/')[4]).then(res=>{
@@ -65,45 +75,17 @@ function Chat({ project, setProject, risksList, setRisksList, risk, setrisk})
 
 
 
-    const formatdate = (date1)=>{
-       // console.log(date1," ddddd");
-        const dateObject = new Date(date1); // יצירת אובייקט תאריך מהתאריך הנכנס
-
-  const options = {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false, // להשתמש בפורמט של 24 שעות
-    timeZone: 'UTC', // התאמה לאזור הזמן של ישראל
-  };
-      //  console.log(date1)
-        // const dateString = date1;
-        // const dateObject = new Date(dateString);
-      //  dateObject.setHours(dateObject.getHours()-2)
-        // const options = {
-        //   day: '2-digit',
-        //   month: '2-digit',
-        //   year: 'numeric',
-        //   hour: '2-digit',
-        //   minute: '2-digit',
-        //   second: '2-digit',
-        //   hour12: false, // Use 24-hour format
-        //   timeZone:  'Asia/Jerusalem', // Assuming your original date string is in GMT
-        // };
-        
-        // const formattedDate = new Intl.DateTimeFormat('he-IL', options).format(dateObject);
-
-        const formattedDate = new Intl.DateTimeFormat('he-IL', options).format(dateObject);
-
-        return formattedDate
-
-
-
-        
-    }
+    const formatdate = (date1) => {
+        return new Intl.DateTimeFormat('he-IL', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+            timeZone: 'Asia/Jerusalem',
+        }).format(new Date(date1));
+    };
     
 
     return(
@@ -154,10 +136,10 @@ function Chat({ project, setProject, risksList, setRisksList, risk, setrisk})
 
                                 <div className="input-group">
                                     
-                                    <textarea name="message" placeholder="Type Message ..."  type="textarea" value={chatInput} onChange={(e)=> {setChatInput(e.target.value)}} required className="form-control" id="chatInput" />
-                                    
+                                    <textarea name="message" placeholder="כתוב הודעה... (Enter לשליחה)" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={handleKeyDown} className="form-control" id="chatInput" />
+
                                     <span className="input-group-btn">
-                                        <button type="submit" className="btn btn-primary btn-flat" onClick={hundlesubmit}> Send</button>
+                                        <button type="submit" className="btn btn-primary btn-flat" onClick={hundlesubmit}>שלח</button>
                                     </span>
                                 </div>
 
